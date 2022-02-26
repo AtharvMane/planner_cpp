@@ -1,0 +1,10 @@
+# goal definition
+# class of the object to follow
+string class_name
+---
+# result definition
+# reached = 1 -> tag within 2m
+# reached = 0 -> tag not within 2m
+bool reached
+---
+# feedback definition

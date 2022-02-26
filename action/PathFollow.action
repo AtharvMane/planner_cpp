@@ -1,0 +1,11 @@
+#goal definition
+float64[] trajectory_x
+float64[] trajectory_y
+---
+#result definition
+#ack=1 -> obstacle in front
+#ack=0 -> reached goal without any obstacle 
+bool ack
+---
+#feedback
+geometry_msgs/Point current_pos

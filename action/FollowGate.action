@@ -1,0 +1,10 @@
+# goal definition
+# class of the object to follow
+string class_name
+---
+# result definition
+# reached = 1 ->  passed gate
+# reached = 0 -> not passed gate
+bool reached
+---
+# feedback definition
