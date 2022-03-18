@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(planner_cpp)
+project(planner_urc)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -8,15 +8,13 @@ project(planner_cpp)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  rospy
-  actionlib
-  actionlib_msgs
-  std_msgs
-  geometry_msgs
   nav_msgs
+  roscpp
+  rospy
+  sensor_msgs
+  std_msgs
+  actionlib_msgs
   message_generation
-  cv_bridge
-
 )
 
 ## System dependencies are found with CMake's conventions
@@ -53,28 +51,31 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
- add_message_files(
-   FILES
-   BoundingBox.msg
-   BoundingBoxes.msg
- )
+add_message_files(
+  FILES
+  BoundingBox.msg
+  BoundingBoxes.msg
+)
 
 ## Generate services in the 'srv' folder
- add_service_files(
-   FILES
-   astar.srv
- )
+# add_service_files(
+#   FILES
+#   Service1.srv
+#   Service2.srv
+# )
 
 ## Generate actions in the 'action' folder
- add_action_files(
-   DIRECTORY action
-   FILES PathFollow.action FollowGate.action FollowTag.action
- )
+add_action_files(
+  FILES
+  SearchTag.action
+  FollowTag.action
+  FollowGate.action
+)
 
 ## Generate added messages and services with any dependencies listed here
- generate_messages(
-   DEPENDENCIES actionlib_msgs geometry_msgs std_msgs nav_msgs # Or other packages containing msgs
- )
+generate_messages(
+  DEPENDENCIES actionlib_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -107,8 +108,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES planner_cpp
-  CATKIN_DEPENDS rospy actionlib_msgs
+#  LIBRARIES controls_auto
+CATKIN_DEPENDS nav_msgs roscpp rospy sensor_msgs std_msgs actionlib_msgs
 #  DEPENDS system_lib
 )
 
@@ -125,7 +126,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/planner.cpp
+#   src/${PROJECT_NAME}/planner_urc.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -136,7 +137,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/planner_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/planner_urc_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -162,10 +163,10 @@ include_directories(
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
- install(PROGRAMS
-   scripts/astar_borrowed_service.py astar_borrowed_test.py mapping.py root_controller.py
-   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
- )
+# catkin_install_python(PROGRAMS
+#   scripts/my_python_script
+#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
@@ -200,69 +201,10 @@ include_directories(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_planner.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_planner_urc.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
-
-find_package(PythonLibs REQUIRED)
-include_directories(${PYTHON_INCLUDE_DIRS})
-
-
-# CMakeLists.txt
-cmake_minimum_required(VERSION 3.15)
-project("example" LANGUAGES CXX)
-
-# guard against in-source builds
-if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
-    message(FATAL_ERROR "In-source builds not allowed. Please make a new directory (called a build directory) and run CMake from there. You may need to remove CMakeCache.txt. ")
-endif()
-
-# find python libraries
-find_package(Python3 COMPONENTS Interpreter Development NumPy REQUIRED)
-find_package(PythonLibs 3.0 REQUIRED)
-include_directories(${PYTHON3_INCLUDE_DIRS} ${NumPy_INCLUDE_DIRS})
-
-# populate matplotlib repository
-include(FetchContent)
-FetchContent_Declare(
-    matplotlib
-    GIT_REPOSITORY https://github.com/lava/matplotlib-cpp.git
-    GIT_TAG        f23347fca25219d1c42cbb91608b5556814bf572
-)
-FetchContent_GetProperties(matplotlib)
-if(NOT matplotlib_POPULATED)
-    FetchContent_Populate(matplotlib)
-endif()
-include_directories(SYSTEM ${matplotlib_SOURCE_DIR})
-
-# add executable
-add_executable(mapping src/mapping.cpp)
-add_executable(astar_planner src/astar_planner.cpp)
-add_executable(astar_planner_test src/astar_planner_test.cpp)
-add_executable(path_follower src/path_follower.cpp)
-add_executable(dsa_cpp src/dsa_cpp.cpp)
-
-
-
-
-# link python and numpy
-target_link_libraries(mapping ${catkin_LIBRARIES}
-        ${PYTHON_LIBRARIES}
-        Python3::NumPy
-)
-target_link_libraries(astar_planner ${catkin_LIBRARIES}
-        ${PYTHON_LIBRARIES}
-        Python3::NumPy
-)
-target_link_libraries(astar_planner_test ${catkin_LIBRARIES}
-        ${PYTHON_LIBRARIES}
-        Python3::NumPy
-)
-target_link_libraries(dsa_cpp ${catkin_LIBRARIES}
-        ${PYTHON_LIBRARIES}
-        Python3::NumPy
-)

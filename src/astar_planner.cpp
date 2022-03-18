@@ -112,36 +112,39 @@ class Astar_Planner{
                 if((y+1)<map_height){
                 neighbours.push_back({x+1,y+1});
                 }
-                if((y-1)>0){
+                if((y-1)>=0){
                 neighbours.push_back({x+1,y-1});
 
                 }
             }
-            if((x-1)>0){
+            if((x-1)>=0){
                 neighbours.push_back({x-1,y});
                 if((y+1)<map_height){
                 neighbours.push_back({x-1,y+1});
                 }
-                if((y-1)>0){
+                if((y-1)>=0){
                 neighbours.push_back({x-1,y-1});
                 }
             }
             if((y+1)<map_height){
                 neighbours.push_back({x,y+1});
             }
-            if((y-1)>0){
+            if((y-1)>=0){
                 neighbours.push_back({x,y-1});
             }
-
+            // std::cout<<neighbours.size()<<std::endl;
             return neighbours;
         }
 
     std::pair<std::vector<double>,std::vector<double>> backtrack(Astar_Node *goalNode){
         std::vector<double> rx,ry;
+        
         while(goalNode && !(ros::isShuttingDown())){
             rx.push_back(this->calc_grid_position(goalNode->returnX(),this->world_min_x));
             ry.push_back(this->calc_grid_position(goalNode->returnY(),this->world_min_y));
             goalNode=goalNode->getParent();
+            plt::plot(rx,ry,"-r");
+            plt::pause(0.01);
         }
         std::reverse(rx.begin(),rx.end());
         std::reverse(ry.begin(),ry.end());
@@ -154,14 +157,16 @@ class Astar_Planner{
         std::tie(x1,y1)=t1;
         std::tie(x2,y2)=t2;
 
-        double t=std::max((int)(this->obstacle_map.at<int8_t>(y1,x1)), 0)+std::max((int)(this->obstacle_map.at<int>(y2,x1)), 0);
+        double t=std::max((int)(this->obstacle_map.at<int8_t>(y1,x1)), 0)+std::max((int)(this->obstacle_map.at<int8_t>(y2,x2)), 0);
 
-        if (t>80){
+        if (t>=80){
             
             t=std::numeric_limits<double>::infinity();
+            // std::cout<<"costing "<<t<<std::endl;
             return t;
         }
         else{
+            // std::cout<<"costing "<<this->distance(t1,t2)<<std::endl;
             return this->distance(t1,t2);
         }
     }
@@ -171,6 +176,7 @@ class Astar_Planner{
         int x2=b.returnX();
         int y1=a.returnY();
         int y2=b.returnY();
+        std::cout<<"parent= "<<b.getParent()<<std::endl;
         if(b.getParent()){
         int x3=b.getParent()->returnX();
         int y3=b.getParent()->returnY();
@@ -178,13 +184,11 @@ class Astar_Planner{
         double angle1=std::atan2(y1-y2,x1-x2);
         double angle2=std::atan2(y2-y3,x2-x3);
 
-        if(angle1==angle2){
-            return 0;
+        return 1.42*std::abs(angle2-angle1)/2*M_PI;
         }
         else{
-            std::cout<<0.05<<",";
-            return 1.5;
-        }}else{
+            std::cout<<"no parent"<<std::endl;
+
             return 0;
         }
 
@@ -207,6 +211,7 @@ class Astar_Planner{
         dx = std::abs(x - x1);
         dy = std::abs(y - y1);
         double h = (dx + dy) + (std::sqrt(2) - 2) * std::min(dx, dy);
+        // std::cout<<"added heuristic"<<h<<"x1="<<x1<<" y1="<<y1<<std::endl;
         return h;
     }
 
@@ -228,24 +233,37 @@ class Astar_Planner{
         int iteration=0;
         std::pair<int,int>start={calc_xy_index(sx,this->world_min_x),calc_xy_index(sy,this->world_min_y)};
         std::pair<int,int>goal={calc_xy_index(gx,this->world_min_x),calc_xy_index(gy,this->world_min_y)};
-        pq.push({0.0+this->distance(start,goal),start});
+        pq.push({0.0+this->calcHeuristic(start,goal),start});
         Astar_Node start_node=Astar_Node(start);
         start_node.setCost(0);
         reached.insert({start,start_node});
         std::pair<int,int> t;
         double d;
-        
+        double doubleCheck=reached.at(start).getCost()+this->calcHeuristic(start,goal);
         while (!(pq.empty()) && !(ros::isShuttingDown())){
             iteration++;
             
-            
             std::tie(d,t)=pq.top();
-            std::vector<double>rx,ry;
             pq.pop();
+            std::cout<<"reached cost= "<<reached.at(t).getCost()+this->calcHeuristic(t,goal)<<" pqcost "<<d<<" tup="<<this->calc_grid_position(reached.at(t).returnX(),this->world_min_x)<<" "<<this->calc_grid_position(reached.at(t).returnY(),this->world_min_y)<<std::endl;
+            doubleCheck=reached.at(t).getCost()+this->calcHeuristic(t,goal);
+            std::vector<double>rx,ry;
 
 
             if (reached.at(t).isProcessed())
                 {continue;}
+            std::vector<double> plot_x;
+            plot_x.push_back(this->calc_grid_position(reached.at(t).returnX(),this->world_min_x));
+
+            std::vector<double> plot_y;
+            plot_y.push_back(this->calc_grid_position(reached.at(t).returnY(),this->world_min_y));
+            // if(plot_x.size()>2){
+
+            // plt::plot(plot_x,plot_y,"xr");
+            // plt::grid(true);
+            // plt::pause(0.01);
+            // }
+
             reached.at(t).setProcessed(true);
             if(t==goal){
 
@@ -258,24 +276,38 @@ class Astar_Planner{
             for(std::pair<int,int> tup:l){
                 if(!(reached.count(tup))){
                     Astar_Node n=Astar_Node(tup);
-                    n.setCost(reached.at(t).getCost()+this->returnCost(t,tup)+this->turningCost(n,reached.at(t)));
+                     
                     n.setParent(&(reached.at(t)));
+                    n.setCost(reached.at(t).getCost()+this->returnCost(t,tup)+this->turningCost(n,reached.at(t)));
                     reached.insert({tup,n});
 
-                    pq.push({n.getCost()+this->calcHeuristic(goal,tup),tup});
+                    pq.push({n.getCost()+this->calcHeuristic(tup,goal),tup});
+                    // std::cout<<"node cost= "<<n.getCost()+this->calcHeuristic(tup,goal)<<" tup="<<this->calc_grid_position(n.returnX(),this->world_min_x)<<" "<<this->calc_grid_position(n.returnY(),this->world_min_y)<<std::endl;
+                    std::vector<double> x={this->calc_grid_position(n.returnX(),this->world_min_x),this->calc_grid_position(reached.at(t).returnX(),this->world_min_x)};
+                    std::vector<double> y={this->calc_grid_position(n.returnY(),this->world_min_y),this->calc_grid_position(reached.at(t).returnY(),this->world_min_y)};
+                    // plt::plot(x,y,"-b");
+                    // plt::pause(0.01);
                 }
-                else if ((reached.at(tup).getCost()+this->returnCost(t,tup))<reached.at(tup).getCost())
+                else if ((reached.at(t).getCost()+this->returnCost(t,tup)+this->turningCost(reached.at(tup),reached.at(t)))<reached.at(tup).getCost())
                 {
                     Astar_Node n=reached.at(tup);
-                    n.setCost(reached.at(t).getCost()+this->returnCost(t,tup));
+                    
                     n.setParent(&(reached.at(t)));
-                    pq.push({n.getCost()+this->calcHeuristic(goal,tup),tup});
+                    n.setCost(reached.at(t).getCost()+this->returnCost(t,tup)+this->turningCost(n,reached.at(t)));
+                    reached.at(tup)=n;
+                    pq.push({reached.at(tup).getCost()+this->calcHeuristic(tup,goal),tup});
+                    // std::cout<<"node alread cost= "<<reached.at(tup).getCost()+this->calcHeuristic(tup,goal)<<" tup="<<this->calc_grid_position(reached.at(tup).returnX(),this->world_min_x)<<" "<<this->calc_grid_position(reached.at(tup).returnY(),this->world_min_y)<<std::endl;
+                    std::vector<double> x={this->calc_grid_position(reached.at(tup).returnX(),this->world_min_x),this->calc_grid_position(reached.at(t).returnX(),this->world_min_x)};
+                    std::vector<double> y={this->calc_grid_position(reached.at(tup).returnY(),this->world_min_y),this->calc_grid_position(reached.at(t).returnY(),this->world_min_y)};
+                    // plt::plot(x,y,"-b");
+                    // plt::pause(0.01);
                 }
                 
             }
 
-            if (iteration > 5000){
+            if (iteration > 100000){
                 std::cout<<"couldn't reach goal"<<std::endl;
+                return {false,{},{}};  
             }
         }
         return {false,{},{}};  
@@ -333,9 +365,12 @@ bool main_planner(planner_cpp::astar::Request &req, planner_cpp::astar::Response
         obs_pos_x.push_back(x*obstacle_map.info.resolution+obstacle_map.info.origin.position.x);
         obs_pos_y.push_back(y*obstacle_map.info.resolution+obstacle_map.info.origin.position.y);
 
-        cv::circle(cv_2d_map,cv::Point(x,y),4,cv::Scalar(100),-1);
+        cv::circle(cv_2d_map,cv::Point(x,y),7,cv::Scalar(100),-1);
     }
 
+            // plt::plot(obs_pos_x,obs_pos_y,".k");
+            // plt::axis("equal");
+            // plt::pause(0.01);
 
 
     Astar_Planner planner=Astar_Planner(map_resolution,map_origin_x,map_origin_y,&cv_2d_map,map_width,map_height);
@@ -344,13 +379,11 @@ bool main_planner(planner_cpp::astar::Request &req, planner_cpp::astar::Response
 
     std::tie(res.ack,res.trajectory_x,res.trajectory_y)=planner.plan(sx,sy,gx,gy);
 
-    plt::plot(res.trajectory_x,res.trajectory_y,"-r");
-    plt::plot(obs_pos_x,obs_pos_y,".k");
-    plt::show();
-    while(!(ros::isShuttingDown())){
-        cv::imshow("test",cv_2d_map);
-        cv::waitKey(2);
-    }
+    
+    // while(!(ros::isShuttingDown())){
+    //     cv::imshow("test",cv_2d_map);
+    //     cv::waitKey(2);
+    // }
     return true;
 
     

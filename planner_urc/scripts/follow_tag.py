@@ -1,31 +1,34 @@
-#! /usr/bin/env python3
+#! /usr/bin/env python
 import rospy
 import cv2
 import cv_bridge
 import numpy as np
-import planner.msg
+import planner_urc.msg
 import actionlib
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
 from std_msgs.msg import String
 from nav_msgs.msg import Odometry
-from planner.msg import BoundingBoxes,BoundingBox
-from tf import TransformListener
-
+from planner_urc.msg import BoundingBoxes
+from math import sqrt
 
 class Follow():
     # create messages that are used to publish feedback/result
-    _feedback = planner.msg.FollowTagFeedback()
-    _result = planner.msg.FollowTagResult()
+    _feedback = planner_urc.msg.FollowTagFeedback()
+    _result = planner_urc.msg.FollowTagResult()
     
-    # depth info
-    # depth_data = []
-
-    # image
+   # image data
     image = np.zeros((480,640))
 
     # center of the image
-    center = 320 #320
+    center = 320
+
+    # if the callback is the first callback
+    first_image = False
+    first_box = False
+
+    # pub message
+    command = Twist()
 
     # bounding box params
     cx, cy, xmin, ymin, xmax, ymax = 0, 0, 0, 0, 0, 0
@@ -36,47 +39,48 @@ class Follow():
     # threshold to stop rotating
     yaw_threshold = 80
 
-    # distance from the object to stop (in meters)
-    depth_threshold = 1.0
-
     # linear velocity and angular velocity
-    linear_vel = 0.3  # 0.3 previosuly
-    angular_vel = 0.1 # 0.15 previously
+    linear_vel = 0.15  # 0.3 previosuly
+    angular_vel = 0.15 # 0.2 previously
 
+    # area params
     area = 0
-
-    area_threshold = 200 # 5000 previously
+    area_threshold = 1000
 
     def __init__(self, name):
         self.bridge = cv_bridge.CvBridge()
 
         # initialize subscribers
         self.box_sub = rospy.Subscriber('/bb_aruco', BoundingBoxes, self.box_callback)
+        self.image_sub = rospy.Subscriber('/camera1/usb_cam1/image_raw', Image, self.image_callback)
+
+        while not self.first_image and not rospy.is_shutdown():
+            pass
 
         # initialize publishers
-        self.pub_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
-        #topic name for running of rover is : /rover
-
+        self.pub_vel = rospy.Publisher('/rover', Twist, queue_size=10)
+        self.pub_led = rospy.Publisher('/led', String, queue_size = 10)
+        
         # start the server
         self._action_name = name
-        self._as = actionlib.SimpleActionServer(self._action_name, planner.msg.FollowTagAction, execute_cb=self.execute_cb, auto_start = False)
+        self._as = actionlib.SimpleActionServer(self._action_name, planner_urc.msg.FollowTagAction, execute_cb=self.execute_cb, auto_start = False)
         self._as.start()
-    
-        #first callback
-        self.first = False
-        while not self.first:
-            pass 
 
-        print('Done initializing server, pubs, subs')
+        print("Done initializing action")
 
-    def box_callback(self, msg):
+    def box_callback(self,msg):
         self.bounding_boxes = msg.bounding_boxes
-        self.first = True
+        self.first_box = True
+    
+    def image_callback(self, msg):
+        self.image = self.bridge.imgmsg_to_cv2(msg, desired_encoding = 'bgr8')
+        self.first_image = True
+        # print(self.first_image)
 
     def get_cx_cy(self):
         bb = self.bounding_boxes
 
-        mx_area = - float('inf')
+        mx_area = 0
         cx = 0
         cy = 0
 
@@ -89,7 +93,7 @@ class Follow():
                 ymax=box.ymax
 
                 area = abs((xmax-xmin)*(ymax-ymin))
-
+                
                 if area>mx_area:
                     self.xmin = xmin
                     self.xmax = xmax
@@ -108,8 +112,7 @@ class Follow():
         msg.angular.x = 0.0
         msg.angular.y = 0.0
         msg.angular.z = 0.0
-
-        self.pub_vel.publish(msg)
+        return msg
     
     def move_forward(self):
         msg = Twist()
@@ -119,24 +122,7 @@ class Follow():
         msg.angular.x = 0.0
         msg.angular.y = 0.0
         msg.angular.z = 0.0
-
-        # self.pub_vel.publish(msg)
         return msg
-    
-#We don't actually use this block, we use rotate_with_linear instead
-
-    def rotate(self, rotation):
-        msg = Twist()
-        # msg.linear.x = self.linear_vel
-        msg.linear.x = 0.0
-        msg.linear.y = 0.0
-        msg.linear.z = 0.0
-        msg.angular.x = 0.0
-        msg.angular.y = 0.0
-        # msg.angular.z = (rotation/320) * self.angular_vel
-        msg.angular.z = rotation* self.angular_vel
-
-        self.pub_vel.publish(msg)
 
     def rotate_with_linear(self, forward, proportion):
         msg = Twist()
@@ -146,44 +132,41 @@ class Follow():
         msg.angular.x = 0.0
         msg.angular.y = 0.0
         msg.angular.z = proportion * self.angular_vel
-        # self.pub_vel.publish(msg)
         return msg
 
     def execute_cb(self,goal):
-        self.req_class_name = goal.class_name
+        self.cx = goal.cx
+        self.cy = goal.cy
         self.area = 0
+        self.bounding_boxes = []
         r = rospy.Rate(10)
-        self.stop()
 
-        
+        while (self.area < self.area_threshold) and not rospy.is_shutdown():
 
-        while (self.area < self.area_threshold) and (not rospy.is_shutdown()):
-            self.stop()
             self.get_cx_cy()
-            print(self.area)
-            # print(abs(self.cx - self.center))
-            if(abs(self.cx - self.center) > 30): #Threshold to turn | Value Before : 40
-                error = float(self.center - self.cx)
-                msg = self.rotate_with_linear(True, float(error/320))
-                #self.rotate_with_linear(True, float(error/320)) # Was 200
+            print(abs(self.cx - self.center))
+            if(abs(self.cx - self.center) > 20):
+                error = -float(self.center - self.cx)
+                self.command = self.rotate_with_linear(True, float(error/320))
             
             else:
-                msg = self.move_forward()
-            #self.move_forward()
-            self.pub_vel.publish(msg)   
+                self.command = self.move_forward()
+
+            self.pub_vel.publish(self.command)
             r.sleep()
-
-            
+        
         if self.area > self.area_threshold:
-            self.stop()
+            self.command = self.stop()
+            self.pub_vel.publish(self.command)
             self._result.reached = True
-            self._as.set_succeeded(self._result, 'Reached within 2m of the ar tag.')
-
-            
+            self._as.set_succeeded(self._result, 'Reached within 2m of the tag')
+            for i in range(250):
+                msg = String()
+                msg.data = 'green'
+                self.pub_led.publish(msg)
+                r.sleep()
 
         else:
-            self.stop()
-            print("error")
             self._result.reached = False
             self._as.set_succeeded(self._result, 'Not reached')
 

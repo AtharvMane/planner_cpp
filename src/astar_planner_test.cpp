@@ -23,10 +23,10 @@ class MapSubscriber{
         {nav_msgs::OccupancyGrid map=msg;
         geometry_msgs::Point start_pos=geometry_msgs::Point();
         geometry_msgs::Point goal_pos=geometry_msgs::Point();
-        start_pos.x = -6.0;
+        start_pos.x = -3.0;
         start_pos.y = -4.0;
-        goal_pos.x = -2.5;
-        goal_pos.y =0.0;
+        goal_pos.x = -0.0;
+        goal_pos.y =-1.0;
         planner_cpp::astar srv;
         srv.request.start_pos=start_pos;
         srv.request.goal_pos=goal_pos;
