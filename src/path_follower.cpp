@@ -5,6 +5,7 @@
 #include <planner_cpp/PathFollowAction.h>
 #include <geometry_msgs/Point.h>
 #include <nav_msgs/Odometry.h>
+#include <sensor_msgs/LaserScan.h>
 #include <tf/transform_datatypes.h>
 #include <math.h>
 
@@ -20,7 +21,8 @@ protected:
   planner_cpp::PathFollowFeedback path_follow_feedback_;
   planner_cpp::PathFollowResult path_follow_result_;
   geometry_msgs::Point curr_point;
-
+  std::vector<float> ranges;
+  bool ls_clbk_bool=false,odom_clbk_bool=false;
 
 
 
@@ -59,43 +61,56 @@ public:
     this->cur_pos_y=msg.pose.pose.position.x;
     this->cur_yaw=tf::getYaw(msg.pose.pose.orientation)+M_PI_2f64;
   }
-
-
-  void path_breaker(){
-    std::vector<double>::iterator traj_x_iter=this->trajectory_x.begin();
-    std::vector<double> x_diff;
-    std::vector<double>::iterator traj_y_iter=this->trajectory_y.begin();
-    std::vector<double> y_diff;
-    std::vector<double> angles;
+  void scan_clbk(sensor_msgs::LaserScan msg){
+    // this->ls_stamp_time=msg.header.stamp;
+    this->ranges=msg.ranges;
+    // this->restrict_ranges(&this->ranges,30,-30,0.7,8.0);
+    this->ls_clbk_bool=true;
     
-    while((traj_x_iter+1)!=this->trajectory_x.end()){
-      x_diff.push_back(*(traj_x_iter)-*(++traj_x_iter));
-    }
-    while((traj_y_iter+1)!=this->trajectory_y.end()){
-      y_diff.push_back(*(traj_y_iter)-*(++traj_y_iter));
-    }
-    traj_x_iter=x_diff.begin();
-    traj_y_iter=y_diff.begin();
-    while((traj_x_iter)!=x_diff.end() && (traj_y_iter)!=y_diff.end()){
-      angles.push_back(std::atan2(*(traj_y_iter),*(traj_x_iter)));
-    }
-
-    for(int i;i<angles.size();i++){
-      if(angles[i]>0){
-        this->trajectory_endpoints_x.push_back(this->trajectory_x[i]);
-        this->trajectory_endpoints_y.push_back(this->trajectory_y[i]);
-  
-      }
-    }
-    this->trajectory_endpoints_x.push_back(*(this->trajectory_x.rbegin()));
-    this->trajectory_endpoints_y.push_back(*(this->trajectory_y.rbegin()));
-    angles.clear();
-    angles.shrink_to_fit();
-    x_diff.clear();
-    x_diff.shrink_to_fit();
-    y_diff.clear();
-    y_diff.shrink_to_fit();
   }
+  void restrict_ranges(std::vector<float> *ranges, int start_angle,int end_angle,float min_distance,float max_distance){
+    for(int i=start_angle;i<360+end_angle;i++){
+      (*ranges)[i]= std::numeric_limits<float>::infinity();
+    }
+    
+  }
+
+
+  // void path_breaker(){
+  //   std::vector<double>::iterator traj_x_iter=this->trajectory_x.begin();
+  //   std::vector<double> x_diff;
+  //   std::vector<double>::iterator traj_y_iter=this->trajectory_y.begin();
+  //   std::vector<double> y_diff;
+  //   std::vector<double> angles;
+    
+  //   while((traj_x_iter+1)!=this->trajectory_x.end()){
+  //     x_diff.push_back(*(traj_x_iter)-*(++traj_x_iter));
+  //   }
+  //   while((traj_y_iter+1)!=this->trajectory_y.end()){
+  //     y_diff.push_back(*(traj_y_iter)-*(++traj_y_iter));
+  //   }
+  //   traj_x_iter=x_diff.begin();
+  //   traj_y_iter=y_diff.begin();
+  //   while((traj_x_iter)!=x_diff.end() && (traj_y_iter)!=y_diff.end()){
+  //     angles.push_back(std::atan2(*(traj_y_iter),*(traj_x_iter)));
+  //   }
+
+  //   for(int i;i<angles.size();i++){
+  //     if(angles[i]>0){
+  //       this->trajectory_endpoints_x.push_back(this->trajectory_x[i]);
+  //       this->trajectory_endpoints_y.push_back(this->trajectory_y[i]);
+  
+  //     }
+  //   }
+  //   this->trajectory_endpoints_x.push_back(*(this->trajectory_x.rbegin()));
+  //   this->trajectory_endpoints_y.push_back(*(this->trajectory_y.rbegin()));
+  //   angles.clear();
+  //   angles.shrink_to_fit();
+  //   x_diff.clear();
+  //   x_diff.shrink_to_fit();
+  //   y_diff.clear();
+  //   y_diff.shrink_to_fit();
+  // }
 
   double angle_to_turn(){
     double inc_x=this->goal_pos_x-this->cur_pos_x;
@@ -115,11 +130,15 @@ public:
   }
   
   void executeCB(const planner_cpp::PathFollowGoalConstPtr &goal){
+    // if (!(odom_clbk_bool && ls_clbk_bool)){
+    //   continue;
+    // }
+      
     this->trajectory_x=goal->trajectory_x;
     this->trajectory_y=goal->trajectory_y;
-    this->path_breaker();
-    std::vector<double>::iterator x_iter=this->trajectory_endpoints_x.begin();
-    std::vector<double>::iterator y_iter=this->trajectory_endpoints_y.begin();  
+    // this->path_breaker();
+    // std::vector<double>::iterator x_iter=this->trajectory_endpoints_x.begin();
+    // std::vector<double>::iterator y_iter=this->trajectory_endpoints_y.begin();  
 
 
     }

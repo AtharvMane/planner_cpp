@@ -59,10 +59,10 @@ class RootClient(object): # OOP karlo friends
 		self.map_sub = rospy.Subscriber('/map', OccupancyGrid , self.map_cb)
 
 		# service initialize
-		self.astar_service = rospy.ServiceProxy('astar_planner', astar_borrowed) # Defines a service proxy for calling the A* service
+		self.astar_service = rospy.ServiceProxy('astar_service', astar_borrowed) # Defines a service proxy for calling the A* service
 		try:
 			print("Waiting for services") # I mean its a print statement dont worry
-			rospy.wait_for_service('astar_planner') # this might worry you tbh, but lite, it just waits for servie till ist up and running (haa haa naam hi repeat kar raha hu thik hai)
+			rospy.wait_for_service('astar_service') # this might worry you tbh, but lite, it just waits for servie till ist up and running (haa haa naam hi repeat kar raha hu thik hai)
 			print("Done waiting for services")
 		except rospy.ServiceException as e: # try catch block stuff, its called error handling, standard stuff, check this to get help: Docs: https://docs.python.org/3/tutorial/errors.html for video enthusiasts: https://www.youtube.com/watch?v=NIWwJbo-9_8
 			rospy.logerr("Services could not be initialized")
@@ -73,7 +73,7 @@ class RootClient(object): # OOP karlo friends
 		print("Waiting for Subscriptions")
 
 		while not(self.first_map_clbk and self.first_odom_clbk): # this is also how you can use the first callback bool
-    			continue
+			continue
 		print("Done initializing Subscriber/Publishers/Actions/Services/Variables.")
 
 		# a variable that will shift to aruco code
@@ -289,7 +289,7 @@ if __name__ == "__main__":
 	goal_x = []
 	goal_y = []
 	
-	file=open("catkin_ws/src/planner-2022-Autonomous-rospy-/scripts/root_cont_coordinates.txt","r")
+	file=open("src/planner_cpp/scripts/root_cont_coordinates.txt","r")
 	line= file.readlines()[0]
 	for word in line.split():
 		words.append(word)
@@ -304,14 +304,15 @@ if __name__ == "__main__":
 	for i in range(3):
 		print(i)
 
+
 		root.main(goal_x[i], goal_y[i],False,False)
-	for i in range(3):
-		print(i)
+	# for i in range(3):
+	# 	print(i)
 
-		root.main(goal_x[i+3], goal_y[i+3],True,False)
+	# 	root.main(goal_x[i+3], goal_y[i+3],True,False)
 
 
-	root.main(goal_x[6], goal_y[6],False,True)
+	# root.main(goal_x[6], goal_y[6],False,True)
 		
 	rospy.spin()
 	print(i)
