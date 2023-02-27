@@ -16,7 +16,10 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   message_generation
   cv_bridge
-
+  grid_map_core
+  grid_map_ros
+  grid_map_msgs
+  nodelet
 )
 
 ## System dependencies are found with CMake's conventions
@@ -106,7 +109,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
+ INCLUDE_DIRS include
 #  LIBRARIES planner_cpp
   CATKIN_DEPENDS rospy actionlib_msgs
 #  DEPENDS system_lib
@@ -119,7 +122,7 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+ include
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -240,29 +243,39 @@ endif()
 include_directories(SYSTEM ${matplotlib_SOURCE_DIR})
 
 # add executable
-add_executable(mapping src/mapping.cpp)
-add_executable(astar_planner src/astar_planner.cpp)
-add_executable(astar_planner_test src/astar_planner_test.cpp)
-add_executable(path_follower src/path_follower.cpp)
-add_executable(dsa_cpp src/dsa_cpp.cpp)
+# add_executable(mapping src/mapping.cpp)
+# add_executable(astar_planner src/astar_planner.cpp)
+# add_executable(astar_planner_test src/astar_planner_test.cpp)
+# add_executable(path_follower src/path_follower.cpp)
+# add_executable(dsa_cpp src/dsa_cpp.cpp)
+# add_executable(grid_map_play src/grid_map_play.cpp)
+add_library(planner_lib src/astar_nodelet.cpp)
 
 
 
 
 # link python and numpy
-target_link_libraries(mapping ${catkin_LIBRARIES}
+# target_link_libraries(mapping ${catkin_LIBRARIES}
+# ${PYTHON_LIBRARIES}
+# Python3::NumPy
+# )
+# target_link_libraries(astar_planner ${catkin_LIBRARIES}
+# ${PYTHON_LIBRARIES}
+# Python3::NumPy
+# )
+# target_link_libraries(astar_planner_test ${catkin_LIBRARIES}
+# ${PYTHON_LIBRARIES}
+# Python3::NumPy
+# )
+# target_link_libraries(dsa_cpp ${catkin_LIBRARIES}
+# 	${PYTHON_LIBRARIES}
+# 	Python3::NumPy
+# 	)
+# target_link_libraries(grid_map_play ${catkin_LIBRARIES}
+# 	${PYTHON_LIBRARIES}
+# 	Python3::NumPy
+# 	)
+target_link_libraries(planner_lib ${catkin_LIBRARIES}
         ${PYTHON_LIBRARIES}
         Python3::NumPy
-)
-target_link_libraries(astar_planner ${catkin_LIBRARIES}
-        ${PYTHON_LIBRARIES}
-        Python3::NumPy
-)
-target_link_libraries(astar_planner_test ${catkin_LIBRARIES}
-        ${PYTHON_LIBRARIES}
-        Python3::NumPy
-)
-target_link_libraries(dsa_cpp ${catkin_LIBRARIES}
-        ${PYTHON_LIBRARIES}
-        Python3::NumPy
-)
+        )        

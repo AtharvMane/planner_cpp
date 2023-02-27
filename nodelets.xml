@@ -1,0 +1,11 @@
+<library path="libplanner_lib">
+
+  <class name="planner_cpp/astar_nodelet"
+   type="AstarNS::Astar_Nodelet"
+   base_class_type="nodelet::Nodelet">
+    <description>
+      Nodelet to convert sensor_msgs/PointCloud2 and nav_msgs/Odometry to nav_msgs/OccumpancyGrid.
+    </description>
+  </class>
+
+</library>

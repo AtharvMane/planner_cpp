@@ -1,0 +1,36 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/inforter/catkin_ws/devel/include/**",
+        "/home/inforter/kratos_ws/devel/include/**",
+        "/opt/ros/noetic/include/**",
+        "/home/inforter/catkin_ws/src/beginner_tutorials/include/**",
+        "/home/inforter/kratos_ws/src/autonomous_irc/darknet_ros/darknet_ros/include/**",
+        "/home/inforter/catkin_ws/src/image_pipeline/depth_image_proc/include/**",
+        "/home/inforter/catkin_ws/src/image_pipeline/image_proc/include/**",
+        "/home/inforter/catkin_ws/src/common_tutorials/pluginlib_tutorials/include/**",
+        "/home/inforter/catkin_ws/src/image_pipeline/stereo_image_proc/include/**",
+        "/home/inforter/catkin_ws/src/turtlebot3_simulations/turtlebot3_fake/include/**",
+        "/home/inforter/catkin_ws/src/turtlebot3_simulations/turtlebot3_gazebo/include/**",
+        "/home/inforter/catkin_ws/src/turtlebot3/turtlebot3_slam/include/**",
+        "/home/inforter/catkin_ws/src/ublox/ublox_gps/include/**",
+        "/home/inforter/catkin_ws/src/ublox/ublox_msg_filters/include/**",
+        "/home/inforter/catkin_ws/src/ublox/ublox_msgs/include/**",
+        "/home/inforter/catkin_ws/src/ublox/ublox_serialization/include/**",
+        "/home/inforter/catkin_ws/src/urc2022/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}

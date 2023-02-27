@@ -283,8 +283,8 @@ class Astar_Planner{
 
                     pq.push({n.getCost()+this->calcHeuristic(tup,goal),tup});
                     // std::cout<<"node cost= "<<n.getCost()+this->calcHeuristic(tup,goal)<<" tup="<<this->calc_grid_position(n.returnX(),this->world_min_x)<<" "<<this->calc_grid_position(n.returnY(),this->world_min_y)<<std::endl;
-                    std::vector<double> x={this->calc_grid_position(n.returnX(),this->world_min_x),this->calc_grid_position(reached.at(t).returnX(),this->world_min_x)};
-                    std::vector<double> y={this->calc_grid_position(n.returnY(),this->world_min_y),this->calc_grid_position(reached.at(t).returnY(),this->world_min_y)};
+                    // std::vector<double> x={this->calc_grid_position(n.returnX(),this->world_min_x),this->calc_grid_position(reached.at(t).returnX(),this->world_min_x)};
+                    // std::vector<double> y={this->calc_grid_position(n.returnY(),this->world_min_y),this->calc_grid_position(reached.at(t).returnY(),this->world_min_y)};
                     // plt::plot(x,y,"-b");
                     // plt::pause(0.01);
                 }
